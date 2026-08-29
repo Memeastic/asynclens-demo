@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AsyncLens Extension Options</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:20px}
+    label{display:block;margin-top:12px}
+    input[type=text]{width:100%;padding:8px;margin-top:6px}
+    button{margin-top:12px;padding:8px 12px}
+    .note{color:#666;font-size:13px;margin-top:8px}
+  </style>
+</head>
+<body>
+  <h2>AsyncLens Extension Options</h2>
+  <label>Collector URL
+    <input id="collector" type="text" placeholder="http://localhost:3000/asynclens/events" />
+  </label>
+  <label>Instrumentation script URL
+    <input id="scriptSrc" type="text" placeholder="http://localhost:3000/instrumentation.js" />
+  </label>
+  <div class="note">By default this extension injects the instrumentation script from your local AsyncLens server (http://localhost:3000). You can change this to load a remote script or an extension-hosted file.</div>
+  <button id="save">Save</button>
+  <div id="status" style="margin-top:10px;color:green"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
