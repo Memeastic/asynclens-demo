@@ -21,11 +21,23 @@ Quick start
    http://localhost:3000/dashboard.html  (open first)
    http://localhost:3000/demo.html
 
-Notes
+Security & privacy
 
-- The instrumentation attempts to avoid sending very large payloads and trims values.
-- Use AsyncLens.wrapAsync(fn) to explicitly mark async functions if you want clearer await points.
-- Snapshots: use the "Save" button in the dashboard to store a JSON snapshot in snapshots/. Use "Load" to fetch recent events.
+- The instrumentation has a redaction config at `window.AsyncLens.config.redactKeys` which defaults to `['authorization','cookie','set-cookie','password']`.
+- You can customize this before the instrumentation script loads in your app:
+
+```html
+<script>
+  window.AsyncLens = window.AsyncLens || {};
+  window.AsyncLens.config = { redactKeys: ['authorization','cookie','password','token'] };
+</script>
+<script src="/instrumentation.js"></script>
+```
+
+Replay & snapshots
+
+- The dashboard includes Play / Pause / Step controls to replay events as they arrived.
+- Use Save to persist a snapshot to `snapshots/` on the server and Load to pull recent events back into the UI.
 
 Next steps planned
 

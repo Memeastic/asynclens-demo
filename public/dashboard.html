@@ -32,6 +32,10 @@
         <option value="timer">Timer</option>
       </select>
       <button id="toggle-3d" title="Toggle 3D view">3D</button>
+      <button id="play" title="Play replay">Play</button>
+      <button id="pause" title="Pause replay">Pause</button>
+      <button id="step-back" title="Step back">◀</button>
+      <button id="step-forward" title="Step forward">▶</button>
       <button id="save-snapshot" title="Save events snapshot">Save</button>
       <button id="load-snapshot" title="Load last snapshot">Load</button>
       <button id="clear-data">Purge Data</button>
@@ -59,7 +63,7 @@
       <div id="event-list" class="event-list" aria-live="polite"></div>
 
       <div class="panel-footer">
-        <div class="inspector-header">Inspector</div>
+        <div class="inspector-header">Inspector <button id="download-event" title="Download current event" style="margin-left:8px">Download</button></div>
         <div id="inspector" class="inspector">Select a node or request to inspect</div>
       </div>
     </aside>
