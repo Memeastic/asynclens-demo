@@ -3,23 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <title>AsyncLens Dashboard</title>
-  <link rel="stylesheet" href="/styles.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <!-- vis-network CDN -->
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-  <h1>AsyncLens Dashboard</h1>
-  <div id="wrap">
-    <div id="network" style="flex:1; height:600px; border:1px solid #ddd;"></div>
-    <div id="panel" style="width:320px; border-left:1px solid #ddd; padding:8px; box-sizing:border-box;">
-      <h3>Events</h3>
-      <div id="events" style="font-family:monospace; font-size:12px; overflow:auto; height:540px;"></div>
+<body class="dark">
+  <header class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      <div class="title">AsyncLens</div>
     </div>
-  </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Requests</div><div id="count-requests" class="value">0</div></div>
+      <div class="stat"><div class="label">Avg Latency</div><div id="avg-latency" class="value">— ms</div></div>
+      <div class="stat"><div class="label">Entities</div><div id="count-entities" class="value">0</div></div>
+    </div>
+
+    <div class="controls">
+      <input id="filter-input" placeholder="Filter events / url..." />
+      <select id="type-filter">
+        <option value="all">All Resource Types</option>
+        <option value="fetch">Fetch</option>
+        <option value="promise">Promise</option>
+        <option value="timer">Timer</option>
+      </select>
+      <button id="clear-data">Purge Data</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="graph-area">
+      <div id="legend" class="legend">
+        <div class="legend-title">NODE LEGEND</div>
+        <div class="legend-row"><span class="sw root"></span> Page Origin (Root)</div>
+        <div class="legend-row"><span class="sw hub"></span> Domain Hub</div>
+        <div class="legend-row"><span class="sw fast"></span> Fast (&lt;150ms)</div>
+        <div class="legend-row"><span class="sw med"></span> Medium (150-400ms)</div>
+        <div class="legend-row"><span class="sw slow"></span> Slow (&gt;400ms)</div>
+      </div>
+
+      <div id="network" class="network"></div>
+      <div id="connection-indicator" class="conn disconnected">Not connected</div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="panel-header">Events</div>
+      <div id="event-list" class="event-list" aria-live="polite"></div>
+
+      <div class="panel-footer">
+        <div class="inspector-header">Inspector</div>
+        <div id="inspector" class="inspector">Select a node or request to inspect</div>
+      </div>
+    </aside>
+  </main>
 
   <script src="/event-graph.js"></script>
   <script>
-    // start connection to same host/ws
+    // connect using same origin
     const loc = window.location;
     const wsProtocol = loc.protocol === 'https:' ? 'wss' : 'ws';
     const wsUrl = wsProtocol + '://' + loc.host;
