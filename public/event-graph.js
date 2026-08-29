@@ -1,9 +1,10 @@
 // public/event-graph.js
-// Enhanced dashboard logic: graph + event list + inspector + stats
+// Enhanced dashboard logic: graph + 3D view + event list + inspector + stats
 
 function startAsyncLensDashboard(wsUrl){
   // DOM
-  const container = document.getElementById('network');
+  const container2D = document.getElementById('network');
+  const container3D = document.getElementById('graph3d');
   const eventsEl = document.getElementById('event-list');
   const inspectorEl = document.getElementById('inspector');
   const connIndicator = document.getElementById('connection-indicator');
@@ -13,10 +14,16 @@ function startAsyncLensDashboard(wsUrl){
   const filterInput = document.getElementById('filter-input');
   const typeFilter = document.getElementById('type-filter');
   const clearBtn = document.getElementById('clear-data');
+  const toggle3DBtn = document.getElementById('toggle-3d');
 
-  // vis datasets
+  // vis 2D datasets
   const nodes = new vis.DataSet([]);
   const edges = new vis.DataSet([]);
+
+  // 3D data model
+  const nodes3d = [];
+  const links3d = [];
+  const nodeIndex3d = new Map();
 
   // index maps
   const entityToNode = new Map();   // entityId -> nodeId
@@ -27,8 +34,8 @@ function startAsyncLensDashboard(wsUrl){
   let totalLatency = 0;
   const MAX_EVENTS = 2000;
 
-  // create network
-  const network = new vis.Network(container, { nodes, edges }, {
+  // create 2D network
+  const network = new vis.Network(container2D, { nodes, edges }, {
     interaction: { hover: true, multiselect: false, zoomView: true },
     nodes: {
       shape: 'ellipse',
@@ -53,6 +60,32 @@ function startAsyncLensDashboard(wsUrl){
     layout: { improvedLayout: true }
   });
 
+  // create 3D graph (hidden by default)
+  let Graph3D = null;
+  try {
+    if (typeof ForceGraph3D === 'function') {
+      Graph3D = ForceGraph3D()(container3D)
+        .graphData({ nodes: nodes3d, links: links3d })
+        .nodeAutoColorBy('kind')
+        .nodeLabel(n => `${n.kind}\n${n.id}`)
+        .linkDirectionalParticles(0)
+        .onNodeClick(node => {
+          // focus in 2D as well
+          if (nodes.get(node.id)) {
+            network.selectNodes([node.id]);
+            network.focus(node.id, { scale: 1.4, animation: { duration: 300 } });
+          }
+          // show inspector
+          showInspector(node.rawEvent || { id: node.id });
+        })
+        .onNodeHover(node => {
+          // simple hover action
+        });
+    }
+  } catch (e) {
+    console.warn('3D graph init failed', e);
+  }
+
   // color mapping
   const KIND_STYLE = {
     fetch: { color: '#27ae60' },    // green
@@ -63,7 +96,7 @@ function startAsyncLensDashboard(wsUrl){
   };
 
   // helper: ensure node exists for an entity
-  function ensureNode(entity){
+  function ensureNode(entity, rawEvent){
     if (!entity || !entity.entityId) return null;
     if (entityToNode.has(entity.entityId)) return entityToNode.get(entity.entityId);
     const id = entity.entityId;
@@ -79,13 +112,36 @@ function startAsyncLensDashboard(wsUrl){
     });
     entityToNode.set(id, id);
     entitiesCountEl.textContent = entityToNode.size;
+
+    // add to 3d model
+    if (Graph3D) {
+      if (!nodeIndex3d.has(id)) {
+        const n = { id, kind, val: 1 + Math.random() * 2, rawEvent };
+        nodeIndex3d.set(id, nodes3d.length);
+        nodes3d.push(n);
+        refresh3D();
+      }
+    }
     return id;
   }
 
   // helper: add edge
   function addEdge(from, to){
     if (!from || !to) return;
-    edges.add({ id: `${from}->${to}:${Math.random().toString(36).slice(2,6)}`, from, to });
+    const eid = `${from}->${to}:${Math.random().toString(36).slice(2,6)}`;
+    edges.add({ id: eid, from, to });
+    // 3D
+    if (Graph3D) {
+      links3d.push({ source: from, target: to, id: eid });
+      refresh3D();
+    }
+  }
+
+  // update 3D graph data
+  function refresh3D(){
+    if (!Graph3D) return;
+    // give copy to avoid mutation issues
+    Graph3D.graphData({ nodes: nodes3d.slice(), links: links3d.slice() });
   }
 
   // short id helper
@@ -112,6 +168,12 @@ function startAsyncLensDashboard(wsUrl){
       if (nodeId && nodes.get(nodeId)) {
         network.selectNodes([nodeId]);
         network.focus(nodeId, { scale: 1.4, animation: { duration: 300 } });
+      }
+      // also rotate 3d camera toward node if present
+      if (Graph3D && nodeIndex3d.has(nodeId)) {
+        const idx = nodeIndex3d.get(nodeId);
+        const n = nodes3d[idx];
+        Graph3D.centerAt(n.x || 0, n.y || 0, 1000, 300);
       }
     });
     eventsEl.insertBefore(el, eventsEl.firstChild);
@@ -183,18 +245,24 @@ function startAsyncLensDashboard(wsUrl){
     const kind = evt.entity?.kind || (evt.type ? evt.type.split(':')[0] : 'default');
 
     // create/ensure node
-    if (evt.entity) ensureNode(evt.entity);
+    if (evt.entity) ensureNode(evt.entity, evt);
 
     // link parentIds if provided
     if (Array.isArray(evt.parentIds) && evt.parentIds.length) {
       evt.parentIds.forEach(pid => {
         // ensure parent node exists as a lightweight node
-        if (!nodes.get(pid)) nodes.add({ id: pid, label: shortId(pid), color: { background: '#374151' }, font: { color: '#fff' } });
+        if (!nodes.get(pid)) {
+          nodes.add({ id: pid, label: shortId(pid), color: { background: '#374151' }, font: { color: '#fff' } });
+          // 3d
+          if (Graph3D && !nodeIndex3d.has(pid)) {
+            nodeIndex3d.set(pid, nodes3d.length);
+            nodes3d.push({ id: pid, kind: 'parent' });
+          }
+        }
         addEdge(pid, nodeId);
       });
     }
 
-    // add simple relation heuristic: group events by entity into a chain
     // mark node size and color based on timings if present
     if (evt.payload && evt.payload.durationMs) {
       const n = nodes.get(nodeId);
@@ -203,12 +271,15 @@ function startAsyncLensDashboard(wsUrl){
         const color = d > 400 ? '#ef4444' : d > 150 ? '#f59e0b' : '#10b981';
         nodes.update({ id: nodeId, color: { background: color, border: '#0f172a' }, value: Math.min(6, 1 + d / 100) });
       }
+      // 3d node size
+      if (nodeIndex3d.has(nodeId)) {
+        const idx = nodeIndex3d.get(nodeId);
+        nodes3d[idx].val = Math.min(6, 1 + Number(evt.payload.durationMs) / 100);
+      }
     }
 
     // add to visual list if passes filter
     if (passesFilter(evt)) renderEventLine(evt);
-
-    // broadcast to nodes (websocket clients already done on server)
   }
 
   // websocket connect
@@ -222,12 +293,12 @@ function startAsyncLensDashboard(wsUrl){
     try {
       const data = JSON.parse(msg.data);
       if (data.type === 'bootstrap' && Array.isArray(data.events)) {
-        data.events.forEach(e => {
-          handleEvent(e);
-        });
+        data.events.forEach(e => handleEvent(e));
       } else if (data.type === 'event' && data.event) {
         handleEvent(data.event);
       }
+      // refresh 3D if needed
+      refresh3D();
     } catch (e) { console.warn('bad ws message', e); }
   };
   ws.onclose = () => {
@@ -256,6 +327,26 @@ function startAsyncLensDashboard(wsUrl){
     requestsCountEl.textContent = '0';
     avgLatencyEl.textContent = '— ms';
     entitiesCountEl.textContent = '0';
+    // clear 3d
+    nodes3d.length = 0; links3d.length = 0; nodeIndex3d.clear();
+    refresh3D();
+  });
+
+  // 3D toggle
+  let showing3D = false;
+  toggle3DBtn.addEventListener('click', () => {
+    showing3D = !showing3D;
+    if (showing3D) {
+      container2D.style.display = 'none';
+      container3D.style.display = 'block';
+      toggle3DBtn.classList.add('active');
+      if (Graph3D) Graph3D.pauseAnimation(0);
+      refresh3D();
+    } else {
+      container3D.style.display = 'none';
+      container2D.style.display = 'block';
+      toggle3DBtn.classList.remove('active');
+    }
   });
 
   // hook node select to inspector
@@ -269,7 +360,7 @@ function startAsyncLensDashboard(wsUrl){
   });
 
   // small helper to keep canvas sized
-  window.addEventListener('resize', () => { network.redraw(); });
+  window.addEventListener('resize', () => { network.redraw(); if (Graph3D) Graph3D.width(container3D.clientWidth).height(container3D.clientHeight); });
 
   // initial message in inspector
   inspectorEl.textContent = 'Waiting for events...';

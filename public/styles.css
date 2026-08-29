@@ -1,4 +1,4 @@
-/* public/styles.css - dark modern UI for AsyncLens dashboard */
+/* public/styles.css - dark modern UI for AsyncLens dashboard (3D + 2D) */
 :root{
   --bg:#0b1020;
   --panel:#0f1724;
@@ -29,11 +29,13 @@ body.dark{background: linear-gradient(180deg,#05060a 0%, #0b0e17 100%); color:#e
 .controls select{background:#07080c;border:1px solid rgba(255,255,255,0.04);color:#cbd5e1;padding:8px;border-radius:8px}
 .controls button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#dbeafe;padding:8px 12px;border-radius:8px;cursor:pointer}
 .controls button:hover{background:rgba(255,255,255,0.02)}
+.controls button.active{background:linear-gradient(90deg,#3b82f6,#7c3aed);box-shadow:0 8px 30px rgba(124,58,237,0.12)}
 
 /* layout */
 .layout{display:flex;height:calc(100vh - 72px);gap:18px;padding:18px}
 .graph-area{flex:1;position:relative;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border-radius:10px;padding:14px;display:flex;flex-direction:column}
 .network{flex:1;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg,#061021, #071326);min-height:480px}
+.graph3d{flex:1;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;min-height:480px}
 
 /* legend box */
 .legend{position:absolute;left:24px;top:24px;background:rgba(10,12,16,0.6);backdrop-filter: blur(6px);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);color:#cbd5e1;min-width:160px}
