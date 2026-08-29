@@ -1,0 +1,13 @@
+{
+  "name": "asynclens-demo",
+  "version": "0.1.0",
+  "description": "AsyncLens demo: instrumentation + collector + visualizer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  }
+}
