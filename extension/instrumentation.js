@@ -68,14 +68,64 @@
     }
   }catch(e){ /* ignore */ }
 
-  // simple timer instrumentation example
+  // Timer instrumentation with rate-limiting and filtering to avoid spamming
   try{
     const origSetTimeout = window.setTimeout;
+    const origSetInterval = window.setInterval;
+    const scheduledTimers = new Map(); // id -> {delay, created}
+    const lastTimerSent = new Map();   // id -> timestamp
+    const lastIntervalSent = new Map();
+    const RATE_LIMIT_MS = 200; // don't send more often than this per timer id
+    const MIN_DELAY_MS = 10;   // ignore timers with delay < this (common microtask scheduling)
+
     window.setTimeout = function(fn, delay){
+      if (typeof fn !== 'function') return origSetTimeout.apply(this, arguments);
+      const actualDelay = Number(delay) || 0;
       const id = genId('timer');
       const args = Array.prototype.slice.call(arguments, 2);
-      return origSetTimeout(function(){ safeSend({ id, type: 'timer:callback', payload: { delay } }); try{ fn.apply(this, args); }catch(e){} }, delay);
+      scheduledTimers.set(id, { delay: actualDelay, created: Date.now() });
+
+      // optionally send a schedule event for longer delays
+      if (actualDelay >= MIN_DELAY_MS) safeSend({ id, type: 'timer:scheduled', payload: { delay: actualDelay } });
+
+      return origSetTimeout(function(){
+        try{
+          const now = Date.now();
+          const last = lastTimerSent.get(id) || 0;
+          if (now - last > RATE_LIMIT_MS) {
+            safeSend({ id, type: 'timer:callback', payload: { delay: actualDelay } });
+            lastTimerSent.set(id, now);
+          }
+        }catch(e){}
+        scheduledTimers.delete(id);
+        try{ return fn.apply(this, args); }catch(e){}
+      }, actualDelay);
     };
-  }catch(e){}
+
+    window.setInterval = function(fn, delay){
+      if (typeof fn !== 'function') return origSetInterval.apply(this, arguments);
+      const actualDelay = Number(delay) || 0;
+      const id = genId('interval');
+      const args = Array.prototype.slice.call(arguments, 2);
+      let callCount = 0;
+
+      // send scheduled event if notable
+      if (actualDelay >= MIN_DELAY_MS) safeSend({ id, type: 'interval:scheduled', payload: { delay: actualDelay } });
+
+      return origSetInterval(function(){
+        callCount++;
+        try{
+          const now = Date.now();
+          const last = lastIntervalSent.get(id) || 0;
+          if (now - last > RATE_LIMIT_MS) {
+            safeSend({ id, type: 'interval:callback', payload: { delay: actualDelay, calls: callCount } });
+            lastIntervalSent.set(id, now);
+            callCount = 0; // reset grouping
+          }
+        }catch(e){}
+        try{ return fn.apply(this, args); }catch(e){}
+      }, actualDelay);
+    };
+  }catch(e){ /* ignore timers instrumentation errors */ }
 
 })();
