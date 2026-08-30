@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "AsyncLens Injector",
-  "description": "Inject AsyncLens instrumentation into web pages and send events to a local AsyncLens collector.",
-  "version": "0.2.0",
-  "permissions": ["storage"],
+  "name": "AsyncLens Simple",
+  "version": "0.1.0",
+  "description": "Self-contained AsyncLens demo extension — no external server required. Load unpacked and open Options to view events.",
+  "permissions": ["storage", "activeTab"],
   "host_permissions": ["<all_urls>"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -14,15 +18,14 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": true
-  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content-injector.js"],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "action": {
+    "default_title": "AsyncLens Simple"
+  }
 }

@@ -1,27 +1,31 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>AsyncLens Extension Options</title>
+  <meta charset="utf-8">
+  <title>AsyncLens Simple — Events</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:20px}
-    label{display:block;margin-top:12px}
-    input[type=text]{width:100%;padding:8px;margin-top:6px}
-    button{margin-top:12px;padding:8px 12px}
-    .note{color:#666;font-size:13px;margin-top:8px}
+    body{font-family:system-ui,Arial;margin:0;background:#08101a;color:#dbe8f5}
+    header{padding:12px 16px;background:#061021;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:12px}
+    main{display:flex;gap:12px;padding:12px}
+    #events{width:640px;max-height:70vh;overflow:auto;background:#061425;padding:12px;border-radius:8px}
+    .ev{padding:8px;margin-bottom:8px;border-radius:6px;background:linear-gradient(90deg,#04202b,#071827);font-size:13px}
+    pre{white-space:pre-wrap;color:#bfe}
+    #controls{display:flex;gap:8px}
+    button{padding:6px 8px;border-radius:6px;border:0;background:#7c3aed;color:white}
   </style>
 </head>
 <body>
-  <h2>AsyncLens Extension Options</h2>
-  <label>Collector URL
-    <input id="collector" type="text" placeholder="http://localhost:3000/asynclens/events" />
-  </label>
-  <label>Instrumentation script URL
-    <input id="scriptSrc" type="text" placeholder="http://localhost:3000/instrumentation.js" />
-  </label>
-  <div class="note">By default this extension injects the instrumentation script from your local AsyncLens server (http://localhost:3000). You can change this to load a remote script or an extension-hosted file.</div>
-  <button id="save">Save</button>
-  <div id="status" style="margin-top:10px;color:green"></div>
+  <header>
+    <div style="font-weight:700;font-size:16px">AsyncLens Simple</div>
+    <div id="controls"><button id="clear">Clear</button><button id="export">Export JSON</button><button id="test">Send Test</button></div>
+  </header>
+  <main>
+    <div id="events">Loading events…</div>
+    <div style="flex:1;max-width:360px">
+      <h3>Inspector</h3>
+      <div id="inspector">Select an event</div>
+    </div>
+  </main>
 
   <script src="options.js"></script>
 </body>
